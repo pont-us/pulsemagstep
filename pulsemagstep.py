@@ -4,32 +4,23 @@ from scipy import polyfit
 import scipy.interpolate
 from numpy import arange
 from math import log10
-
 from optparse import OptionParser
 
-parser = OptionParser(usage = "usage: %prog [options] inputfile")
-parser.add_option("-i", "--interpolation", dest="interp", default="spl",
-                  help="spl spline, pwl piecewise linear, lsq least-squares",
-                  metavar="TYPE")
-parser.add_option("-c", "--calibration", dest="calib", default='',
-                  help="file containing field vs. voltage calibration data",
-                  metavar="FILE")
-parser.add_option("-s", "--steps", dest="steps", default='35',
-                  help="number of steps",
-                  metavar="N")
-parser.add_option("-m", "--min", dest="min", default='3.3',
-                  help="minimum field (mT)",
-                  metavar="MILLITESLA")
-parser.add_option("-a", "--max", dest="max", default='1000',
-                  help="maximum field (mT)",
-                  metavar="MILLITESLA")
-parser.add_option("-d", "--distribution", dest="dist", default='exp',
-                  help="point distribution: lin[ear] or exp[onential]",
-                  metavar="TYPE")
-(opt, args) = parser.parse_args()
+def pick_desired_fields(start, end, number, exponential=False):
+    if not exponential:
+        span = end-start
+        step = span/float(number-1)
+        values = arange(start, end+step, step)
+        return values
+    else:
+        values = pick_desired_fields(log10(start), log10(end), number, False)
+        vs2 = [round(10**logfield, 1) for logfield in values]
+        return vs2
 
-calib_string = \
-'''0 0
+def make_calibration():
+
+    calib_string = \
+    '''0 0
 10 0.29
 15 0.42
 20 0.56
@@ -44,26 +35,14 @@ calib_string = \
 350 10.15
 375 10.80
 400 11.49'''
+    
+    calib = []
+    for line in calib_string.split('\n'):
+        (voltage, field) = line.split(' ')
+        calib.append((float(voltage), float(field) * 100)) # mT
+    return calib
 
-#desired_fields = range(5, 100, 5) + range(100, 200, 10) + \
-#    range(200, 600, 50) + range(600, 1000, 100) + [1000]
-#desired_fields = map(float, desired_fields)
-
-def pick_desired_fields(start, end, number, exponential=False):
-    if not exponential:
-        span = end-start
-        step = span/float(number-1)
-        values = arange(start, end+step, step)
-        return values
-    else:
-        values = pick_desired_fields(log10(start), log10(end), number, False)
-        vs2 = [round(10**logfield, 1) for logfield in values]
-        return vs2
-
-calib = []
-for line in calib_string.split('\n'):
-    (voltage, field) = line.split(' ')
-    calib.append((float(voltage), float(field) * 100)) # mT
+calib = make_calibration()
 
 def interpolate_segment(field):
     if (field < calib[0][1] or field > calib[-1][1]):
@@ -109,10 +88,37 @@ def interpolate(fields, technique):
         result = interpolate_pwl(fields)
     return result
 
-desired_fields =  pick_desired_fields(float(opt.min), float(opt.max),
-                                      float(opt.steps),
-                                      opt.dist.startswith('e'))
-results = interpolate(desired_fields, opt.interp)
+def main():
 
-for result in results:
-    print '%6.1f\t%5.1f' % (result[0], result[1])
+    parser = OptionParser(usage = "usage: %prog [options] inputfile")
+    parser.add_option("-i", "--interpolation", dest="interp", default="spl",
+                      help="spl spline, pwl piecewise linear, lsq least-squares",
+                      metavar="TYPE")
+    parser.add_option("-c", "--calibration", dest="calib", default="",
+                      help="file containing field vs. voltage calibration data",
+                      metavar="FILE")
+    parser.add_option("-s", "--steps", dest="steps", default="35",
+                      help="number of steps",
+                      metavar="N")
+    parser.add_option("-m", "--min", dest="min", default="3.3",
+                      help="minimum field (mT)",
+                      metavar="MILLITESLA")
+    parser.add_option("-a", "--max", dest="max", default="1000",
+                      help="maximum field (mT)",
+                      metavar="MILLITESLA")
+    parser.add_option("-d", "--distribution", dest="dist", default="exp",
+                      help="point distribution: lin[ear] or exp[onential]",
+                      metavar="TYPE")
+    (opt, args) = parser.parse_args()
+    
+    desired_fields =  pick_desired_fields(float(opt.min), float(opt.max),
+                                          float(opt.steps),
+                                          opt.dist.startswith('e'))
+    results = interpolate(desired_fields, opt.interp)
+    
+    for result in results:
+        print '%6.1f\t%5.1f' % (result[0], result[1])
+    
+
+if __name__ == "__main__":
+    main()
