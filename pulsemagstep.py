@@ -17,29 +17,13 @@ def pick_desired_fields(start, end, number, exponential=False):
         vs2 = [round(10**logfield, 1) for logfield in values]
         return vs2
 
-def make_calibration():
-
-    calib_string = \
-    '''0 0
-10 0.29
-15 0.42
-20 0.56
-25 0.70
-50 1.43
-75 2.16
-100 2.89
-150 4.35
-200 5.81
-250 7.27
-300 8.71
-350 10.15
-375 10.80
-400 11.49'''
-    
+def make_calibration(input_file):
     calib = []
-    for line in calib_string.split('\n'):
-        (voltage, field) = line.split(' ')
-        calib.append((float(voltage), float(field) * 100)) # mT
+    with open(input_file, "r") as fh:
+        for line in fh.readlines():
+            if line == "\n" or line[0] == "#": continue
+            (voltage, field) = line.strip().split(" ")
+            calib.append((float(voltage), float(field) * 100)) # mT
     return calib
 
 def interpolate_segment(field, calib):
@@ -88,13 +72,11 @@ def interpolate(fields, technique, calib):
 
 def main():
 
-    parser = OptionParser(usage = "usage: %prog [options] inputfile")
+    usage = "usage: %prog [options] <calibration_file>"
+    parser = OptionParser(usage = usage)
     parser.add_option("-i", "--interpolation", dest="interp", default="spl",
                       help="spl spline, pwl piecewise linear, lsq least-squares",
                       metavar="TYPE")
-    parser.add_option("-c", "--calibration", dest="calib", default="",
-                      help="file containing field vs. voltage calibration data",
-                      metavar="FILE")
     parser.add_option("-s", "--steps", dest="steps", default="35",
                       help="number of steps",
                       metavar="N")
@@ -108,8 +90,15 @@ def main():
                       help="point distribution: lin[ear] or exp[onential]",
                       metavar="TYPE")
     (opt, args) = parser.parse_args()
+
+    if len(args) != 1:
+        print("Incorrect number of arguments.")
+        print(usage)
+        return
     
-    calib = make_calibration()
+    calibration_file = args[0]
+    
+    calib = make_calibration(calibration_file)
     
     desired_fields =  pick_desired_fields(float(opt.min),
                                           float(opt.max),
