@@ -42,9 +42,7 @@ def make_calibration():
         calib.append((float(voltage), float(field) * 100)) # mT
     return calib
 
-calib = make_calibration()
-
-def interpolate_segment(field):
+def interpolate_segment(field, calib):
     if (field < calib[0][1] or field > calib[-1][1]):
         return -1
     s = 0
@@ -53,13 +51,13 @@ def interpolate_segment(field):
     scale = (calib[s][0] - calib[s-1][0]) / (calib[s][1] - calib[s-1][1])
     return calib[s-1][0] + scale * (field - calib[s-1][1])
 
-def interpolate_pwl(fields):
+def interpolate_pwl(fields, calib):
     result = []
     for field in desired_fields:
-        result.append((field, interpolate_segment(field)))
+        result.append((field, interpolate_segment(field, calib)))
     return result
 
-def interpolate_spline(fields):
+def interpolate_spline(fields, calib):
     (volts, mt) = zip(*calib)
     tck = scipy.interpolate.splrep(mt, volts, s=0.0)
     result = []
@@ -71,7 +69,7 @@ def interpolate_spline(fields):
         result.append((xval, yval))
     return result
 
-def interpolate_lsq(fields):
+def interpolate_lsq(fields, calib):
     (volts, mt) = zip(*calib)
     (slope, intercept) = polyfit(mt, volts, 1)
     result = []
@@ -79,13 +77,13 @@ def interpolate_lsq(fields):
         result.append((field, field * slope + intercept))
     return result
 
-def interpolate(fields, technique):
+def interpolate(fields, technique, calib):
     if technique=='lsq':
-        result = interpolate_lsq(fields)
+        result = interpolate_lsq(fields, calib)
     elif technique=='spl':
-        result = interpolate_spline(fields)
+        result = interpolate_spline(fields, calib)
     elif technique=='pwl':
-        result = interpolate_pwl(fields)
+        result = interpolate_pwl(fields, calib)
     return result
 
 def main():
@@ -111,14 +109,16 @@ def main():
                       metavar="TYPE")
     (opt, args) = parser.parse_args()
     
-    desired_fields =  pick_desired_fields(float(opt.min), float(opt.max),
+    calib = make_calibration()
+    
+    desired_fields =  pick_desired_fields(float(opt.min),
+                                          float(opt.max),
                                           float(opt.steps),
                                           opt.dist.startswith('e'))
-    results = interpolate(desired_fields, opt.interp)
+    results = interpolate(desired_fields, opt.interp, calib)
     
     for result in results:
         print '%6.1f\t%5.1f' % (result[0], result[1])
-    
 
 if __name__ == "__main__":
     main()
