@@ -1,7 +1,12 @@
 # example calibration file for pulsemagstep
-# Format: voltage (V) field
+
+# Format: <voltage (V)> <field (mT)>
 # Separator: one space
 # Lines beginning with # and blank lines are ignored.
+
+# Note that this is not a real, or realistic, calibration:
+# it contains deliberate deviations from linearity designed to
+# show more clearly the effects of different interpolation methods.
 
 0 0
 10 029
@@ -9,9 +14,9 @@
 20 056
 25 070
 50 143
-75 216
+75 236
 100 289
-150 435
+150 380
 200 581
 250 727
 300 871

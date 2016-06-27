@@ -11,6 +11,7 @@ import scipy.interpolate
 from numpy import arange
 from math import log10
 from optparse import OptionParser
+import matplotlib.pyplot as plt
 
 def pick_desired_fields(start, end, number, exponential=False):
     if not exponential:
@@ -43,7 +44,7 @@ def interpolate_segment(field, calib):
 
 def interpolate_pwl(fields, calib):
     result = []
-    for field in desired_fields:
+    for field in fields:
         result.append((field, interpolate_segment(field, calib)))
     return result
 
@@ -76,6 +77,21 @@ def interpolate(fields, technique, calib):
         result = interpolate_pwl(fields, calib)
     return result
 
+def make_graph(calib, results, technique):
+    fig = plt.figure()
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+    calib_xy = tuple(zip(*calib))
+    results_yx = tuple(zip(*results))
+    ymin = min(calib[0][1], results[0][0])
+    ymax = max(calib[-1][1], results[-1][0])
+    ys = range(int(ymin), int(ymax+1))
+    interp_results = interpolate(ys, technique, calib)
+    ax.plot(tuple(zip(*interp_results))[1], ys, color="cyan", label="calibration curve")
+    ax.plot(results_yx[1], results_yx[0], "+", mec="black", mew=0.5, label="interpolated step")
+    ax.plot(calib_xy[0], calib_xy[1], "o", mfc="none", mec="red", label="calibration point")
+    ax.legend(loc="best")
+    plt.savefig("test.pdf")
+
 def main():
 
     usage = "usage: %prog [options] <calibration_file>"
@@ -92,8 +108,11 @@ def main():
     parser.add_option("-a", "--max", dest="max", default="1000",
                       help="maximum field (mT)",
                       metavar="MILLITESLA")
+    parser.add_option("-g", "--graph", dest="graph", default=None,
+                      help="produce a PDF graph of the calibration and steps",
+                      metavar="FILENAME")
     parser.add_option("-d", "--distribution", dest="dist", default="exp",
-                      help="point distribution: lin[ear] or exp[onential]",
+                      help="step distribution: lin[ear] or exp[onential]",
                       metavar="TYPE")
     (opt, args) = parser.parse_args()
 
@@ -114,6 +133,9 @@ def main():
     
     for result in results:
         print('%6.1f\t%5.1f' % (result[0], result[1]))
+
+    if opt.graph:
+        make_graph(calib, results, opt.interp)
 
 if __name__ == "__main__":
     main()

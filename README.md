@@ -53,6 +53,8 @@ Options:
                         minimum field (mT)
   -a MILLITESLA, --max=MILLITESLA
                         maximum field (mT)
+  -g FILENAME, --graph=FILENAME
+                        produce a PDF graph of the calibration and steps
   -d TYPE, --distribution=TYPE
                         point distribution: lin[ear] or exp[onential]
 ```
