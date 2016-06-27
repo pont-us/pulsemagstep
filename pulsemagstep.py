@@ -1,5 +1,11 @@
 #!/usr/bin/python
 
+'''
+pulsemagstep is free software released under the MIT licence.
+See the file COPYING for details.
+By Pontus Lurcock (pont at talvi dot net), 2016.
+'''
+
 from scipy import polyfit
 import scipy.interpolate
 from numpy import arange
@@ -23,7 +29,7 @@ def make_calibration(input_file):
         for line in fh.readlines():
             if line == "\n" or line[0] == "#": continue
             (voltage, field) = line.strip().split(" ")
-            calib.append((float(voltage), float(field) * 100)) # mT
+            calib.append((float(voltage), float(field))) # mT
     return calib
 
 def interpolate_segment(field, calib):
@@ -107,7 +113,7 @@ def main():
     results = interpolate(desired_fields, opt.interp, calib)
     
     for result in results:
-        print '%6.1f\t%5.1f' % (result[0], result[1])
+        print('%6.1f\t%5.1f' % (result[0], result[1]))
 
 if __name__ == "__main__":
     main()
